@@ -145,7 +145,7 @@ Matchers help us out in the Given and Then sections.                <!-- .elemen
         assertThat(portfolio, hasPosition(new Position("MSFT", 80.0)));
         assertThat(portfolio, hasPosition(new Position("APPL", 150.0)));
 
-        verify(marketDao).execute(sellOrder);
+        verify(marketDao).execute(sellOrder); // times(1) implied
     }
 
 
@@ -233,7 +233,7 @@ So let's test that too.
      
     Given I have 100 shares of MSFT stock
       And I have 150 shares of APPL stock
-      And the time is after close of trading
+      And the time is before close of trading
      
     When I ask to buy 120 shares of APPL stock
       And I ask to sell 50 shares of APPL stock
@@ -394,7 +394,7 @@ You usually want to extend TypeSafeMatcher, however
     }
 
 
-## matches Safaely
+## matches Safely
     @Override
     protected boolean matchesSafely(Portfolio portfolio) {
         Optional<Position> maybePosition
