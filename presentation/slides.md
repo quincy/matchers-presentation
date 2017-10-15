@@ -1,5 +1,9 @@
-# Beyond JUnit
-## Testing With Hamcrest Matchers
+<!-- .slide: data-background="res/title.jpg" -->
+
+---
+
+## Beyond JUnit
+### Testing With Hamcrest Matchers
 
 ---
 
