@@ -10,14 +10,12 @@ import org.mockito.Mockito;
 import static com.github.quincy.LedgerMatcher.changedBy;
 import static com.github.quincy.LedgerMatcher.hasTransaction;
 import static com.github.quincy.PortfolioMatcher.hasPosition;
-import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -96,7 +94,7 @@ public class MatchersTest {
 
         try {
             // When
-            portfolio.trade(new SellOrder("MSFT", -20.0));
+            portfolio.trade(new SellOrder("MSFT", 20.0));
             fail("Expected a MarketClosedException to be thrown.");
         } catch (MarketClosedException e) {
             // Then

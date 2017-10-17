@@ -80,9 +80,10 @@ public class LegacyTest {
     @Test(expected = MarketClosedException.class)
     public void afterHoursTradeIsRejected() throws MarketClosedException {
         // Given
-        Trade sellOrder = new SellOrder("MSFT", -20.0);
+        when(clock.isMarketOpen()).thenReturn(false);
 
         // When
+        Trade sellOrder = new SellOrder("MSFT", 20.0);
         portfolio.trade(sellOrder);
 
         // Then

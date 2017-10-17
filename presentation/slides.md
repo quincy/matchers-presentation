@@ -5,33 +5,43 @@
 ## Beyond JUnit
 ### Testing With Hamcrest Matchers
 
+Note: Hi I'm Quincy...
+
 ---
 
 # Agenda
 * What is a Matcher?
 * Why should I use them?
-* Lots of examples
-* Hamcrest Matchers vs. Mockito Matchers
+* A brief discussion on Mocks
+* Given, When, Then testing
+* Examples
 * Implementing the Matcher interface
+* Existing Matchers
+
+Note: Here is a brief overview of what we're going to talk about today
 
 ---
 
 # What is a Matcher?
 * An object allowing 'match' rules to be defined declaratively
 * Hamcrest is not a test framework, but Matchers are very useful in tests
+  * UI Validation
+  * data filtering
 
 ---
 
 # Why should I use Matchers?
-* Allows writing flexible tests without overspecifying expected behavior
+* Allows writing flexible tests without over-specifying expected behavior
 * Tests can be written in a sort of mini-DSL, which can help you test intended behavior rather than implementation
+
+Note: This helps tests break less often when unimportant changes are made
 
 ---
 
-# Mocking
+# Mock Objects
 You've probably used Mockito.
 
-It's likely you've been using it wrong.
+It's likely you've been using it wrong. <!-- .element: class="fragment" data-fragment-index="1" -->
 
 
 ## Rules To Mock By
@@ -43,11 +53,15 @@ Builders can help.                                                  <!-- .elemen
 
 
 ## Rules To Mock By
-Mock collaborators
+Mock collaborators (dependencies)
 
 Don't mock the object under test.  Mock out its collaborators. <!-- .element: class="fragment" data-fragment-index="1" -->
 
 You should only be interested in testing one unit at a time.  <!-- .element: class="fragment" data-fragment-index="2" -->
+
+Note: Collaborators are the objects that your object under test interacts with in order to do its job
+
+They are the things you should be injecting into your object
 
 
 ![Collaborators](res/class-diagram.png)
@@ -65,11 +79,13 @@ Put your own interface in front of those objects.                           <!--
 ---
 
 # Given, When, Then
-* Given describes the state of the system before you test           <!-- .element: class="fragment" data-fragment-index="1" -->
-* When describes the behavior you're testing                        <!-- .element: class="fragment" data-fragment-index="2" -->
-* Then describes the changes you expect as a result of the behavior <!-- .element: class="fragment" data-fragment-index="3" -->
+* Given some context                                            <!-- .element: class="fragment" data-fragment-index="1" -->
+* When some action is carried out                               <!-- .element: class="fragment" data-fragment-index="2" -->
+* Then a particular set of observable consequences should occur <!-- .element: class="fragment" data-fragment-index="3" -->
 
-Matchers help us out in the Given and Then sections.                <!-- .element: class="fragment" data-fragment-index="4" -->
+Matchers help us out in the Given and Then sections.            <!-- .element: class="fragment" data-fragment-index="4" -->
+
+Note: Specification by Example
 
 ---
 
@@ -100,30 +116,37 @@ Matchers help us out in the Given and Then sections.                <!-- .elemen
 
         // Given
         portfolio = new Portfolio.Builder()
+                // I have 100 shares of MSFT stock
                 .withPosition(new Position("MSFT", 100.0))
+                // And I have 150 shares of APPL stock
                 .withPosition(new Position("APPL", 150.0))
                 .withTradeExecutor(
                     new TradeExecutor(clock, marketDao))
                 .build();
     }
+<!-- .element style="font-size: 0.4em;" -->
+
+Note: This setUp method will be used by all of our tests since they'll all have similar When sections
 
 
 # Typical Test
     @Test
     public void userTradesStocks() throws MarketClosedException {
-        // Given
+        // And the time is before close of trading
         when(clock.isMarketOpen()).thenReturn(true);
 
-        Trade sellOrder = new SellOrder("MSFT", -20.0);
+        Trade sellOrder = new SellOrder("MSFT", 20.0);
         when(marketDao.execute(sellOrder))
             .thenReturn(new Transaction(sellOrder));
 
-        // When
+        // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
 
-        // Then
+        // Then I should have 80 shares of MSFT stock
         assertEquals(new Position("MSFT", 80.0),
             portfolio.getPosition("MSFT").orElse(null));
+            
+        // And I should have 150 shares of APPL stock
         assertEquals(new Position("APPL", 150.0),
             portfolio.getPosition("APPL").orElse(null));
 
@@ -131,26 +154,32 @@ Matchers help us out in the Given and Then sections.                <!-- .elemen
         // And a sell order for 20 shares of MSFT stock should
         // have been executed
     }
+<!-- .element style="font-size: 0.33em;" -->
 
 
 # Improved Test
     @Test
     public void userTradesStocks() throws MarketClosedException {
-        // Given
+        // And the time is before close of trading
         when(clock.isMarketOpen()).thenReturn(true);
 
         Trade sellOrder = new SellOrder("MSFT", 20.0);
         when(marketDao.execute(sellOrder)).thenReturn(new Transaction(sellOrder));
 
-        // When
+        // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
 
-        // Then
+        // Then I should have 80 shares of MSFT stock
         assertThat(portfolio, hasPosition(new Position("MSFT", 80.0)));
+        
+        // And I should have 150 shares of APPL stock
         assertThat(portfolio, hasPosition(new Position("APPL", 150.0)));
 
+        // And a sell order for 20 shares of MSFT stock should
+        // have been executed
         verify(marketDao).execute(sellOrder); // times(1) implied
     }
+<!-- .element style="font-size: 0.38em;" -->
 
 
 # Compare
@@ -164,13 +193,15 @@ Assertion Using Matcher
     assertThat(portfolio,
         hasPosition(new Position("MSFT", 80.0)));
 
+Note: The second assertion reads almost like your QA Analyst is talking you through it.
+
 ---
 
 Let's look at another example...
 
 
 ## Test Specification
-    Feature: User attempts to trade stocks after hours
+    Feature: User trades stocks
         Scenario: User requests a sell after close of trading
      
         Given I have 100 shares of MSFT stock
@@ -189,15 +220,18 @@ Let's look at another example...
     public void afterHoursTradeIsRejected()
         throws MarketClosedException {
         
-        // Given
-        Trade sellOrder = new SellOrder("MSFT", -20.0);
-
-        // When
+        // And the time is after close of trading
+        when(clock.isMarketOpen()).thenReturn(false);
+        
+        // When I ask to sell 20 shares of MSFT stock
+        Trade sellOrder = new SellOrder("MSFT", 20.0);
         portfolio.trade(sellOrder);
 
-        // Then
-        // And no sell orders should have been executed
+        // Then I should have 100 shares of MSFT stock
+        //  And I should have 150 shares of APPL stock
+        //  And no sell orders should have been executed
     }
+<!-- .element style="font-size: 0.5em;" -->
 
 
 ## Improved Test
@@ -205,33 +239,39 @@ Let's look at another example...
     public void afterHoursTradeIsRejected()
         throws MarketClosedException {
         
-        // Given
+        // And the time is after close of trading
         when(clock.isMarketOpen()).thenReturn(false);
 
         try {
-            // When
-            portfolio.trade(new SellOrder("MSFT", -20.0));
+            // When I ask to sell 20 shares of MSFT stock
+            portfolio.trade(new SellOrder("MSFT", 20.0));
             fail("Expected a MarketClosedException to be thrown.");
         } catch (MarketClosedException e) {
-            // Then
+        
+            // Then I should have 100 shares of MSFT stock
             assertThat(portfolio, hasPosition(new Position("MSFT", 100.0)));
+            
+            //  And I should have 150 shares of APPL stock
             assertThat(portfolio, hasPosition(new Position("APPL", 150.0)));
 
+            //  And no sell orders should have been executed
             verify(marketDao, never())
                 .execute(any(Trade.class)); // Mockito matcher
         }
     }
+<!-- .element style="font-size: 0.33em;" -->
 
 ---
 
 Users don't interact with the Portfolio directly, they issue commands to a Bookkeeper.
 
+Note: Lets write a more complicated test.
 
-So let's test that too.
+We'll call this an integration test since it's really testing that the whole system formed by the Bookkeeper, Ledger, and Portfolio works correctly.
 
 
 ## Test Specification
-    Feature: User buys and sells some stocks
+    Feature: User trades stocks
     Scenario: User requests a buy and a sell before close of
       trading
      
@@ -252,104 +292,144 @@ So let's test that too.
         been executed
       And a transaction for -50 shares of APPL stock should have
         been recorded in the Ledger
+<!-- .element style="font-size: 0.38em;" -->
 
 
 ## Typical Test
     @Test
-    public void userTradesMultipleStocks() throws MarketClosedException {
-        // Given
+    public void userTradesMultipleStocks()
+      throws MarketClosedException {
+        // And the time is before close of trading
         when(clock.isMarketOpen()).thenReturn(true);
 
-        Trade buyOrder = new BuyOrder("APPL", 120.0);
-        Trade sellOrder = new SellOrder("APPL", 50.0);
-        when(marketDao.execute(buyOrder))
-            .thenReturn(new Transaction(buyOrder));
-        when(marketDao.execute(sellOrder))
-            .thenReturn(new Transaction(sellOrder));
 
-        Ledger ledger = new Ledger();
-        Bookkeeper bookkeeper = new Bookkeeper(ledger, portfolio);
+## Typical Test
+    // When I ask to buy 120 shares of APPL stock
+    Trade buyOrder = new BuyOrder("APPL", 120.0);
+    // And I ask to sell 50 shares of APPL stock
+    Trade sellOrder = new SellOrder("APPL", 50.0);
+    when(marketDao.execute(buyOrder))
+        .thenReturn(new Transaction(buyOrder));
+    when(marketDao.execute(sellOrder))
+        .thenReturn(new Transaction(sellOrder));
 
-        // When
-        bookkeeper.submit(buyOrder);
-        bookkeeper.submit(sellOrder);
+    Ledger ledger = new Ledger();
+    Bookkeeper bookkeeper = new Bookkeeper(ledger, portfolio);
+    bookkeeper.submit(buyOrder);
+    bookkeeper.submit(sellOrder);
+<!-- .element style="font-size: 0.54em;" -->
 
-        // Then
-        assertEquals(2, ledger.getTransactions().stream()
-                .filter(transaction 
-                    -> transaction.getSymbol().equals("APPL"))
-                .mapToDouble(Transaction::getUnitsAdjustment)
-                .filter(amount 
-                    -> amount == -50.0 || amount == 120.0)
-                .count());
 
-        assertEquals(0, portfolio.getPositions().stream()
-                .filter(position -> !Objects.equals(
-                    new Position("MSFT", 100.0),
-                    position))
-                .filter(position -> !Objects.equals(
-                    new Position("APPL", 220.0),
-                    position))
-                .count());
+## Typical Test
+    // Then I should have 100 shares of MSFT stock
+    // And I should have 220 shares of APPL stock
+    assertEquals(0, portfolio.getPositions().stream()
+            .filter(position -> !Objects.equals(
+                new Position("MSFT", 100.0),
+                position))
+            .filter(position -> !Objects.equals(
+                new Position("APPL", 220.0),
+                position))
+            .count());
 
-        // And a buy order for 120 shares of APPL stock should have been executed
-        // And a sell order for 50 shares of APPL stock should have been executed
+
+## Typical Test
+    // And a transaction for +120 shares of APPL stock should
+    //   have been recorded in the Ledger
+    // And a transaction for -50 shares of APPL stock should have
+    //   been recorded in the Ledger
+    assertEquals(2, ledger.getTransactions().stream()
+            .filter(transaction 
+                -> transaction.getSymbol().equals("APPL"))
+            .mapToDouble(Transaction::getUnitsAdjustment)
+            .filter(amount 
+                -> amount == -50.0 || amount == 120.0)
+            .count());
+
+
+## Typical Test
+        // And a buy order for 120 shares of APPL stock should
+        //   have been executed
+        // And a sell order for 50 shares of APPL stock should
+        //   have been executed
     }
 
 
 ## Improved Test
     @Test
-    public void userTradesMultipleStocks() throws MarketClosedException {
+    public void userTradesMultipleStocks()
+      throws MarketClosedException {
+        // And the time is before close of trading
         when(clock.isMarketOpen()).thenReturn(true);
 
-        Trade buyOrder = new BuyOrder("APPL", 120.0);
-        Trade sellOrder = new SellOrder("APPL", 50.0);
-        when(marketDao.execute(eq(buyOrder)))
-            .thenReturn(new Transaction(buyOrder));
-        when(marketDao.execute(eq(sellOrder)))
-            .thenReturn(new Transaction(sellOrder));
 
-        Ledger ledger = spy(new Ledger()); // Spy!!
-        Bookkeeper bookkeeper = new Bookkeeper(ledger, portfolio);
+## Improved Test
+    // When I ask to buy 120 shares of APPL stock
+    Trade buyOrder = new BuyOrder("APPL", 120.0);
+    
+    // And I ask to sell 50 shares of APPL stock
+    Trade sellOrder = new SellOrder("APPL", 50.0);
+    when(marketDao.execute(eq(buyOrder)))
+        .thenReturn(new Transaction(buyOrder));
+    when(marketDao.execute(eq(sellOrder)))
+        .thenReturn(new Transaction(sellOrder));
+
+    Ledger ledger = spy(new Ledger()); // Spy!!
+    Bookkeeper bookkeeper = new Bookkeeper(ledger, portfolio);
+    bookkeeper.submit(buyOrder);
+    bookkeeper.submit(sellOrder);
 
 
 ## Improved Test
-        // When
-        bookkeeper.submit(buyOrder);
-        bookkeeper.submit(sellOrder);
+    // Then I should have 100 shares of MSFT stock
+    assertThat(portfolio,
+        hasPosition(new Position("MSFT", 100.0)));
+        
+    // And I should have 220 shares of APPL stock
+    assertThat(portfolio,
+        hasPosition(new Position("APPL", 220.0)));
 
 
 ## Improved Test
-        // Then
-        assertThat(portfolio,
-            hasPosition(new Position("MSFT", 100.0)));
-        assertThat(portfolio,
-            hasPosition(new Position("APPL", 220.0)));
+    // And a buy order for 120 shares of APPL stock should
+    //   have been executed
+    verify(marketDao).execute(buyOrder);
+    
+    // And a sell order for 50 shares of APPL stock should
+    //   have been executed
+    verify(marketDao).execute(sellOrder);
 
 
 ## Improved Test
-        verify(marketDao).execute(buyOrder);
-        verify(marketDao).execute(sellOrder);
+    // And a transaction for +120 shares of APPL stock should
+    //   have been recorded in the Ledger
+    assertThat(ledger,
+        hasTransaction(new Transaction("APPL", 120.0)));
+        
+    // And a transaction for -50 shares of APPL stock should have
+    //   been recorded in the Ledger
+    assertThat(ledger,
+        hasTransaction(new Transaction("APPL", -50.0)));
 
 
 ## Improved Test
-        assertThat(ledger,
-            hasTransaction(new Transaction("APPL", 120.0)));
-        assertThat(ledger,
-            hasTransaction(new Transaction("APPL", -50.0)));
+    ArgumentCaptor<Transaction> transactionCaptor
+        = ArgumentCaptor.forClass(Transaction.class);
 
+    verify(ledger, times(2))
+        .record(transactionCaptor.capture());
 
-## Improved Test
-        ArgumentCaptor<Transaction> transactionCaptor
-            = ArgumentCaptor.forClass(Transaction.class);
+    assertThat(transactionCaptor.getAllValues(), hasItems(
+            new Transaction("APPL", 120.0),
+            new Transaction("APPL", -50.0)));
 
-        verify(ledger, times(2))
-            .record(transactionCaptor.capture());
+Note: This works because ledger is a mock object, a spy actually.
 
-        assertThat(transactionCaptor.getAllValues(), hasItems(
-                new Transaction("APPL", 120.0),
-                new Transaction("APPL", -50.0)));
-    }
+Be careful using Spies.
+
+The Mockito developers don't encourage their use except in a few narrow instances.
+
+In this case, it's a cheap way for me to show off the ArgumentCaptor functionality, and not necessarily how you should be writing your tests.
 
 ---
 
@@ -397,6 +477,18 @@ You usually want to extend TypeSafeMatcher, however
         return new TypeSafeMatcher<Portfolio>() { ... };
     }
 
+Note: PortfolioMatcher could have many matchers available through convenient static methods.
+
+
+Using the static import
+
+    import static com.github.quincy.PortfolioMatcher.hasPosition;
+    
+    //...
+    
+    assertThat(portfolio,
+        hasPosition(new Position("MSFT", 80.0)));
+
 
 ## matches Safely
     @Override
@@ -408,6 +500,7 @@ You usually want to extend TypeSafeMatcher, however
                 -> gotPosition.equals(expectedPosition))
                     .orElse(false);
         }
+<!-- .element style="font-size: 0.52em;" -->
 
 
 ## describe To
@@ -441,6 +534,14 @@ Our new Matcher has a pretty great failure message without any further effort
     Expected: Portfolio should contain a Position{symbol='MSFT', units=80.0}
          but: Portfolio contains Position{symbol='MSFT', units=79.0}
     Position{symbol='APPL', units=150.0}
+<!-- .element style="font-size: 0.46em;" -->
+
+
+Compare that with the type of failure messages you get from plain old JUnit assertions
+
+    java.lang.AssertionError: 
+    Expected :0
+    Actual   :1
 
 
 That's all there is to it
@@ -509,6 +610,7 @@ Plus there are lots of third party Matchers available too!
             .node("credentialsId")
             .matches("devbuild");
     }
+<!-- .element style="font-size: 0.47em;" -->
 
 ---
 
@@ -540,3 +642,5 @@ That's all I have
 The slides and all of the code are available at
 
 https://github.com/quincy/matchers-presentation
+
+![matchers=hamcrest](res/anagram.gif)
