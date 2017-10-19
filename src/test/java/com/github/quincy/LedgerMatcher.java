@@ -5,9 +5,10 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
 import static java.util.stream.Collectors.joining;
+import static org.hamcrest.Matchers.closeTo;
 
 /**
- * Provides Matchers for instances of {@link Ledger}.
+ * Provides Matchers for instances of {@link AccountingLedger}.
  */
 public class LedgerMatcher {
 
@@ -38,7 +39,7 @@ public class LedgerMatcher {
         return new TypeSafeMatcher<Ledger>() {
             @Override
             protected boolean matchesSafely(Ledger ledger) {
-                return ledger.changeInBalance(symbol) == expectedAmount;
+                return closeTo(ledger.changeInBalance(symbol), 0.00001).matches(expectedAmount);
             }
 
             @Override

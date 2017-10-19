@@ -20,8 +20,10 @@ public class Bookkeeper {
         return portfolio;
     }
 
-    public void submit(Trade order) throws MarketClosedException {
-        Transaction transaction = portfolio.trade(order);
-        ledger.record(transaction);
+    public void submit(Trade... orders) throws MarketClosedException {
+        for (Trade order : orders) {
+            Transaction transaction = portfolio.trade(order);
+            ledger.record(transaction);
+        }
     }
 }
