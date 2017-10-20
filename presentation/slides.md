@@ -503,12 +503,12 @@ Our new Matcher has a pretty great failure message without any further effort
     Position{symbol='APPL', units=150.0}
 <!-- .element style="font-size: 0.46em;" -->
 
-
-Compare that with the type of failure messages you get from plain old JUnit assertions
+Compare that with the type of failure messages you get from plain old JUnit assertions <!-- .element: class="fragment" data-fragment-index="1" -->
 
     java.lang.AssertionError: 
     Expected :0
     Actual   :1
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 
 That's all there is to it
