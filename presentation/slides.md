@@ -28,16 +28,16 @@ Note: Here is a brief overview of what we're going to talk about today
 ---
 
 # What is a Matcher?
-* An object allowing 'match' rules to be defined declaratively
-* Hamcrest is not a test framework, but Matchers are very useful in tests
-  * UI Validation
-  * data filtering
+* An object allowing 'match' rules to be defined declaratively             <!-- .element: class="fragment" data-fragment-index="1" -->
+* Hamcrest is not a test framework, but Matchers are very useful in tests  <!-- .element: class="fragment" data-fragment-index="2" -->
+  * UI Validation                                                          <!-- .element: class="fragment" data-fragment-index="3" -->
+  * data filtering                                                         <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ---
 
 # Why should I use Matchers?
-* Allows writing flexible tests without over-specifying expected behavior
-* Tests can be written in a sort of mini-DSL, which can help you test intended behavior rather than implementation
+* Allows writing flexible tests without over-specifying expected behavior                                           <!-- .element: class="fragment" data-fragment-index="1" -->
+* Tests can be written in a sort of mini-DSL, which can help you test intended behavior rather than implementation  <!-- .element: class="fragment" data-fragment-index="2" -->
 
 Note: This helps tests break less often when unimportant changes are made
 
@@ -94,7 +94,7 @@ Note: Specification by Example
 
 ---
 
-# Test Specification
+## Test Specification
     Feature: Portfolio trades stocks
       Scenario: Portfolio requests a sell before close of trading
      
@@ -110,7 +110,7 @@ Note: Specification by Example
           been executed
 
 
-# Test Setup
+## Test Setup
     private TradeClock clock;
     private MarketDao marketDao;
     private Portfolio portfolio;
@@ -133,7 +133,7 @@ Note: Specification by Example
 Note: This setUp method will be used by all of our tests since they'll all have similar When sections
 
 
-# Typical Test
+## Typical Test
     @Test
     public void userTradesStocks() throws MarketClosedException {
         // Given... And the time is before close of trading
@@ -156,7 +156,7 @@ Note: This setUp method will be used by all of our tests since they'll all have 
 <!-- .element style="font-size: 0.33em;" -->
 
 
-# Improved Test
+## Improved Test
     @Test
     public void userTradesStocks() throws MarketClosedException {
         // Given... And the time is before close of trading
@@ -179,7 +179,7 @@ Note: This setUp method will be used by all of our tests since they'll all have 
 <!-- .element style="font-size: 0.38em;" -->
 
 
-# Compare
+## Compare
 Typical Assertion
 
     assertEquals(new Position("MSFT", 80.0),
@@ -321,6 +321,12 @@ Note: Lets write a more complicated test.
     assertThat(portfolio, hasPosition(new Position("MSFT", 100.0)));
     assertThat(portfolio, hasPosition(new Position("APPL", 220.0)));
 <!-- .element style="font-size: 0.45em;" -->
+
+
+What is wrong with this test?
+
+
+We're testing more than one thing at a time
 
 
 ## Improved Test
