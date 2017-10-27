@@ -1,7 +1,5 @@
 package com.github.quincy;
 
-import javafx.beans.binding.When;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -18,24 +16,6 @@ import static org.mockito.Mockito.when;
  * Here is what a typical test might look like when you are first getting started with JUnit and Mockito.
  */
 public class LegacyTest {
-    private TradeClock clock;
-    private MarketDao marketDao;
-    private Portfolio portfolio;
-
-    @Before
-    public void setUp() {
-        clock = mock(TradeClock.class);
-        marketDao = mock(MarketDao.class);
-
-        portfolio = new Portfolio.Builder()
-                // Given I have 100 shares of MSFT stock
-                .withPosition(new Position("MSFT", 100.0))
-                //   And I have 150 shares of APPL stock
-                .withPosition(new Position("APPL", 150.0))
-                .withTradeExecutor(new TradeExecutor(clock, marketDao))
-                .build();
-    }
-
     /**
      * Feature: Portfolio trades stocks
      * Scenario: Portfolio requests a sell before close of trading
@@ -51,12 +31,47 @@ public class LegacyTest {
      *   And a sell order for 20 shares of MSFT stock should have been executed
      */
     @Test
-    public void userTradesStocks() throws MarketClosedException {
-        // Given... And the time is before close of trading
+    public void userTradesStocks_v1() throws MarketClosedException {
+        Portfolio portfolio = new Portfolio.Builder()
+                // Given I have 100 shares of MSFT stock
+                .withPosition(new Position("MSFT", 100.0))
+                //   And I have 150 shares of APPL stock
+                .withPosition(new Position("APPL", 150.0))
+                //   And the time is before close of trading
+                .withTradeExecutor(new TradeExecutor(new Clock(), new MarketDao())).build();
+
+        // When I ask to sell 20 shares of MSFT stock
+        Trade sellOrder = new SellOrder("MSFT", 20.0);
+        portfolio.trade(sellOrder);
+
+        // Then I should have 80 shares of MSFT stock
+        assertEquals(new Position("MSFT", 80.0), portfolio.getPosition("MSFT").orElse(null));
+        //   And I should have 150 shares of APPL stock
+        assertEquals(new Position("APPL", 150.0), portfolio.getPosition("APPL").orElse(null));
+
+        // This last part must have happened right?
+        //   And a sell order for 20 shares of MSFT stock should have been executed
+    }
+
+    @Test
+    public void userTradesStocks_v2() throws MarketClosedException {
+        Trade sellOrder = new SellOrder("MSFT", 20.0);
+
+        // Use a mock MarketDao to avoid real trades being executed from our test!
+        MarketDao marketDao = mock(MarketDao.class);
+        when(marketDao.execute(sellOrder)).thenReturn(new Transaction(sellOrder));
+
+        // Use a mock TradeClock so we can control its behavior and run our test at any time of day.
+        TradeClock clock = mock(TradeClock.class);
         when(clock.isMarketOpen()).thenReturn(true);
 
-        Trade sellOrder = new SellOrder("MSFT", 20.0);
-        when(marketDao.execute(sellOrder)).thenReturn(new Transaction(sellOrder));
+        Portfolio portfolio = new Portfolio.Builder()
+                // Given I have 100 shares of MSFT stock
+                .withPosition(new Position("MSFT", 100.0))
+                //   And I have 150 shares of APPL stock
+                .withPosition(new Position("APPL", 150.0))
+                //   And the time is before close of trading
+                .withTradeExecutor(new TradeExecutor(clock, marketDao)).build();
 
         // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);

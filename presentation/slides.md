@@ -110,39 +110,19 @@ Note: Specification by Example
           been executed
 
 
-## Test Setup
-    private TradeClock clock;
-    private MarketDao marketDao;
-    private Portfolio portfolio;
-
-    @Before
-    public void setUp() {
-        clock = mock(TradeClock.class);
-        marketDao = mock(MarketDao.class);
-
-        portfolio = new Portfolio.Builder()
+## Typical Test v1
+    @Test
+    public void userTradesStocks_v1() throws MarketClosedException {
+        Portfolio portfolio = new Portfolio.Builder()
                 // Given I have 100 shares of MSFT stock
                 .withPosition(new Position("MSFT", 100.0))
                 //   And I have 150 shares of APPL stock
                 .withPosition(new Position("APPL", 150.0))
-                .withTradeExecutor(new TradeExecutor(clock, marketDao))
-                .build();
-    }
-<!-- .element style="font-size: 0.4em;" -->
-
-Note: This setUp method will be used by all of our tests since they'll all have similar When sections
-
-
-## Typical Test
-    @Test
-    public void userTradesStocks() throws MarketClosedException {
-        // Given... And the time is before close of trading
-        when(clock.isMarketOpen()).thenReturn(true);
-
-        Trade sellOrder = new SellOrder("MSFT", 20.0);
-        when(marketDao.execute(sellOrder)).thenReturn(new Transaction(sellOrder));
+                //   And the time is before close of trading
+                .withTradeExecutor(new TradeExecutor(() -> true, new MarketDao())).build();
 
         // When I ask to sell 20 shares of MSFT stock
+        Trade sellOrder = new SellOrder("MSFT", 20.0);
         portfolio.trade(sellOrder);
 
         // Then I should have 80 shares of MSFT stock
@@ -153,30 +133,45 @@ Note: This setUp method will be used by all of our tests since they'll all have 
         // This last part must have happened right?
         //   And a sell order for 20 shares of MSFT stock should have been executed
     }
-<!-- .element style="font-size: 0.33em;" -->
-
-
-## Improved Test
-    @Test
-    public void userTradesStocks() throws MarketClosedException {
-        // Given... And the time is before close of trading
-        when(clock.isMarketOpen()).thenReturn(true);
-
-        Trade sellOrder = new SellOrder("MSFT", 20.0);
-        when(marketDao.execute(sellOrder)).thenReturn(new Transaction(sellOrder));
-
-        // When I ask to sell 20 shares of MSFT stock
-        portfolio.trade(sellOrder);
-
-        // Then I should have 80 shares of MSFT stock
-        assertThat(portfolio, hasPosition(new Position("MSFT", 80.0)));
-        //   And I should have 150 shares of APPL stock
-        assertThat(portfolio, hasPosition(new Position("APPL", 150.0)));
-
-        //   And a sell order for 20 shares of MSFT stock should have been executed
-        verify(marketDao).execute(sellOrder);
-    }
 <!-- .element style="font-size: 0.38em;" -->
+
+
+## Improved Test v2
+    Trade sellOrder = new SellOrder("MSFT", 20.0);
+
+    // Use a mock MarketDao to avoid real trades being executed from our test!
+    MarketDao marketDao = mock(MarketDao.class);
+    when(marketDao.execute(sellOrder)).thenReturn(new Transaction(sellOrder));
+
+    // Use a mock TradeClock so we can control its behavior and run our test at
+    // any time of day.
+    TradeClock clock = mock(TradeClock.class);
+    when(clock.isMarketOpen()).thenReturn(true);
+
+    Portfolio portfolio = new Portfolio.Builder()
+            // Given I have 100 shares of MSFT stock
+            .withPosition(new Position("MSFT", 100.0))
+            //   And I have 150 shares of APPL stock
+            .withPosition(new Position("APPL", 150.0))
+            //   And the time is before close of trading
+            .withTradeExecutor(new TradeExecutor(clock, marketDao)).build();
+<!-- .element style="font-size: 0.45em;" -->
+
+
+## Improved Test v2
+No changes to the assertions
+
+    // When I ask to sell 20 shares of MSFT stock
+    portfolio.trade(sellOrder);
+
+    // Then I should have 80 shares of MSFT stock
+    assertEquals(new Position("MSFT", 80.0), portfolio.getPosition("MSFT").orElse(null));
+    //   And I should have 150 shares of APPL stock
+    assertEquals(new Position("APPL", 150.0), portfolio.getPosition("APPL").orElse(null));
+
+    // This last part must have happened right?
+    //   And a sell order for 20 shares of MSFT stock should have been executed
+<!-- .element style="font-size: 0.41em;" -->
 
 
 ## Compare
