@@ -7,6 +7,6 @@ package com.github.quincy;
  */
 public class MarketDao {
     public Transaction execute(Trade trade) {
-        return new Transaction(trade.getSymbol(), trade.getUnits());
+        return new Transaction(trade);
     }
 }
