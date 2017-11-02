@@ -10,15 +10,17 @@ import java.util.Set;
 /**
  * A container for all of the {@link Position}s owned by a user.
  *
- * This object represents the current total ownership of the user, whereas the Ledger represents the change in ownership over time.
+ * This object represents the current total ownership of stocks for a user.  The user interacts with the Portfolio in order to execute trades.
  */
 public class Portfolio {
     private final Map<String, Position> positions;
-    private final TradeExecutor tradeExecutor;
+    private final TradeClock clock;
+    private final MarketDao marketDao;
 
-    public Portfolio(Map<String, Position> positions, TradeExecutor tradeExecutor) {
+    public Portfolio(Map<String, Position> positions, TradeClock clock, MarketDao marketDao) {
         this.positions = positions;
-        this.tradeExecutor = tradeExecutor;
+        this.clock = clock;
+        this.marketDao = marketDao;
     }
 
     public Optional<Position> getPosition(String symbol) {
@@ -30,9 +32,13 @@ public class Portfolio {
     }
 
     public Transaction trade(Trade order) throws MarketClosedException {
-        Transaction transaction = tradeExecutor.execute(order);
-        applyTransaction(transaction);
-        return transaction;
+        if (clock.isMarketOpen()) {
+            Transaction transaction = marketDao.execute(order);
+            applyTransaction(transaction);
+            return transaction;
+        }
+
+        throw new MarketClosedException();
     }
 
     private void applyTransaction(Transaction transaction) {
@@ -42,11 +48,13 @@ public class Portfolio {
 
     public static class Builder {
         private Map<String, Position> positions;
-        private TradeExecutor tradeExecutor;
+        private TradeClock clock;
+        private MarketDao marketDao;
 
         public Builder() {
             this.positions = new HashMap<>();
-            this.tradeExecutor = null;
+            this.clock = null;
+            this.marketDao = null;
         }
 
         public Builder withPosition(Position position) {
@@ -54,14 +62,20 @@ public class Portfolio {
             return this;
         }
 
-        public Builder withTradeExecutor(TradeExecutor tradeExecutor) {
-            this.tradeExecutor = tradeExecutor;
+        public Builder withTradeClock(TradeClock clock) {
+            this.clock = clock;
+            return this;
+        }
+
+        public Builder withMarketDao(MarketDao marketDao) {
+            this.marketDao = marketDao;
             return this;
         }
 
         public Portfolio build() {
-            Preconditions.checkNotNull(tradeExecutor);
-            return new Portfolio(positions, tradeExecutor);
+            Preconditions.checkNotNull(clock);
+            Preconditions.checkNotNull(marketDao);
+            return new Portfolio(positions, clock, marketDao);
         }
     }
 }

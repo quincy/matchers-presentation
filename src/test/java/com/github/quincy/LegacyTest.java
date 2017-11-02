@@ -5,7 +5,6 @@ import org.junit.Test;
 import static com.github.quincy.PortfolioMatcher.hasPosition;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +35,9 @@ public class LegacyTest {
                 //   And I have 150 shares of APPL stock
                 .withPosition(new Position("APPL", 150.0))
                 //   And the time is before close of trading
-                .withTradeExecutor(new TradeExecutor(new Clock(), new MarketDao())).build();
+                .withTradeClock(new Clock())
+                .withMarketDao(new MarketDao())
+                .build();
 
         // When I ask to sell 20 shares of MSFT stock
         Trade sellOrder = new SellOrder("MSFT", 20.0);
@@ -69,7 +70,9 @@ public class LegacyTest {
                 //   And I have 150 shares of APPL stock
                 .withPosition(new Position("APPL", 150.0))
                 //   And the time is before close of trading
-                .withTradeExecutor(new TradeExecutor(mockClock, mockMarketDao)).build();
+                .withTradeClock(mockClock)
+                .withMarketDao(mockMarketDao)
+                .build();
 
         // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
@@ -101,7 +104,9 @@ public class LegacyTest {
                 //   And I have 150 shares of APPL stock
                 .withPosition(new Position("APPL", 150.0))
                 //   And the time is before close of trading
-                .withTradeExecutor(new TradeExecutor(mockClock, mockMarketDao)).build();
+                .withTradeClock(mockClock)
+                .withMarketDao(mockMarketDao)
+                .build();
 
         // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
@@ -133,12 +138,12 @@ public class LegacyTest {
                 //   And I have 150 shares of APPL stock
                 .withPosition(new Position("APPL", 150.0))
                 //   And the time is before close of trading
-                .withTradeExecutor(new TradeExecutor(mockClock, mockMarketDao)).build();
+                .withTradeClock(mockClock)
+                .withMarketDao(mockMarketDao)
+                .build();
 
         // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
-
-        assertEquals(new Position("MSFT", 70.0), portfolio.getPosition("MSFT").orElse(null));
 
         // Then I should have 80 shares of MSFT stock
         assertThat(portfolio, hasPosition(new Position("MSFT", 80.0)));
