@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 /**
  * Here is what a typical test might look like when you are first getting started with JUnit and Mockito.
  */
-public class LegacyTest {
+public class PortfolioTest {
     /**
      * Feature: Portfolio trades stocks
      * Scenario: Portfolio requests a sell before close of trading
