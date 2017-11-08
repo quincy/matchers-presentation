@@ -10,10 +10,10 @@ This presentation is written in Markdown format and is intended to be presented 
 You can start up the reveal-md Web server and start presenting with the following command.
 
     $ cd presentation
-    $ reveal-md slides.md
+    $ reveal-md slides.md --css style.css
 
 Alternatively, you can also export the presentation to a PDF file like this.
 
     $ cd presentation
-    $ reveal-md slides.md --print slides.pdf
+    $ reveal-md slides.md --css style.css --print slides.pdf
 
