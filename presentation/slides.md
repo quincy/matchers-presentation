@@ -3,7 +3,6 @@ title: Beyond JUnit--Testing With Hamcrest Matchers
 theme: league
 verticalSeparator: "^\n\n"
 ---
-<!-- .slide: data-background="res/title.jpg" -->
 
 ---
 
@@ -11,6 +10,8 @@ verticalSeparator: "^\n\n"
 ### Testing With Hamcrest Matchers
 
 Note: Hi I'm Quincy...
+![Collaborators](res/orly.png)
+<!-- .element style="width: 45%" -->
 
 ---
 
