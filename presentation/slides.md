@@ -3,13 +3,14 @@ title: Beyond JUnit--Testing With Hamcrest Matchers
 theme: league
 verticalSeparator: "^\n\n"
 ---
+## Beyond JUnit
+### Testing With Hamcrest Matchers
+Quincy Bowers
+
+Software Developer Team Lead
 
 ---
 
-## Beyond JUnit
-### Testing With Hamcrest Matchers
-
-Note: Hi I'm Quincy...
 ![Collaborators](res/orly.png)
 <!-- .element style="width: 45%" -->
 
@@ -42,7 +43,11 @@ Never fix the same bug twice
 ## Implementation
 Guides your design toward loosely coupled components
 
-Punishes you when your classes are too big or contain multiple responsibilities  <!-- .element: class="fragment" data-fragment-index="1" -->
+Punishes you when your classes are too big or contain multiple responsibilities
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+If it's painful to test, it'll be painful to debug.
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 
 ## Documentation
@@ -53,7 +58,8 @@ Documents how the code is meant to be used
 # Mock Objects
 You've probably used Mockito.
 
-It's likely you've been using it wrong. <!-- .element: class="fragment" data-fragment-index="1" -->
+Here are some rules to avoid some common ways I've seen it misused.
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 
 ## Rules To Mock By
@@ -81,6 +87,10 @@ They are the things you should be injecting into your object
 
 
 ![Collaborators](res/class-diagram.png)
+<!-- .element style="width: 150%" -->
+
+(Psst!  This is not Clearwater's Portfolio class)
+<!-- .element style="font-size: 0.5em" -->
 
 
 ## Rules To Mock By
@@ -153,7 +163,7 @@ Note: Specification by Example
         // This last part must have happened right?
         //   And a sell order for 20 shares of MSFT stock should have been executed
     }
-<!-- .element style="font-size: 0.35em" -->
+<!-- .element style="font-size: 0.43em; width: 100%;" -->
 
 
 ## Problems With v1
@@ -166,13 +176,15 @@ Note: Specification by Example
             .withTradeClock(new Clock())     // <-- look here
             .withMarketDao(new MarketDao())  // <-- look here
             .build();
-<!-- .element style="font-size: 0.46em;" -->
 
-It's a LARGE test!                       <!-- .element: class="fragment" data-fragment-index="1" -->
+It's a LARGE test!
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-The test attempts to execute real trades <!-- .element: class="fragment" data-fragment-index="2" -->
+The test attempts to execute real trades
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
-The test fails if ran after hours        <!-- .element: class="fragment" data-fragment-index="3" -->
+The test fails if ran after hours
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ---
 
@@ -195,14 +207,14 @@ The test fails if ran after hours        <!-- .element: class="fragment" data-fr
             .withTradeClock(mockClock)
             .withMarketDao(mockMarketDao)
             .build();
-<!-- .element style="font-size: 0.43em;" -->
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
 
 
 But we can still improve things
 
     // This last part must have happened right?
     //   And a sell order for 20 shares of MSFT stock should have been executed
-<!-- .element style="font-size: 0.45em;" -->
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
 
 ---
 
@@ -211,14 +223,14 @@ We can verify this expected behavior...
 
     // This last part must have happened right?
     //   And a sell order for 20 shares of MSFT stock should have been executed
-<!-- .element style="font-size: 0.45em;" -->
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
 
 By using the Mockito verify method <!-- .element: class="fragment" data-fragment-index="1" -->
 
     //   And a sell order for 20 shares of MSFT stock should have been executed
     verify(mockMarketDao).execute(sellOrder);
 <!-- .element: class="fragment" data-fragment-index="1" -->
-<!-- .element style="font-size: 0.45em;" -->
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
 
 ---
 
@@ -226,38 +238,29 @@ By using the Mockito verify method <!-- .element: class="fragment" data-fragment
     @Test
     public void userTradesStocks_v3() throws MarketClosedException {
         Trade sellOrder = new SellOrder("MSFT", 20.0);
-
-        // Use a mock MarketDao to avoid real trades being executed from our test!
         MarketDao mockMarketDao = mock(MarketDao.class);
         when(mockMarketDao.execute(sellOrder)).thenReturn(new Transaction(sellOrder));
-
-        // Use a mock TradeClock so we can control its behavior and run our test at
-        // any time of day.
         TradeClock mockClock = mock(TradeClock.class);
         when(mockClock.isMarketOpen()).thenReturn(true);
-
         Portfolio portfolio = new Portfolio.Builder()
-                // Given I have 100 shares of MSFT stock
                 .withPosition(new Position("MSFT", 100.0))
-                //   And I have 150 shares of APPL stock
                 .withPosition(new Position("APPL", 150.0))
-                //   And the time is before close of trading
                 .withTradeClock(mockClock)
                 .withMarketDao(mockMarketDao)
                 .build();
-
-        // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
 
         // Then I should have 80 shares of MSFT stock
-        assertEquals(new Position("MSFT", 80.0), portfolio.getPosition("MSFT").orElse(null));
+        assertEquals(new Position("MSFT", 80.0),
+                portfolio.getPosition("MSFT").orElse(null));
         //   And I should have 150 shares of APPL stock
-        assertEquals(new Position("APPL", 150.0), portfolio.getPosition("APPL").orElse(null));
+        assertEquals(new Position("APPL", 150.0),
+                portfolio.getPosition("APPL").orElse(null));
 
         //   And a sell order for 20 shares of MSFT stock should have been executed
         verify(mockMarketDao).execute(sellOrder);
     }
-<!-- .element style="font-size: 0.38em;" -->
+<!-- .element style="font-size: 0.41em; width: 100%;" -->
 
 
 I think we can still do better
@@ -266,11 +269,12 @@ I think we can still do better
 Let's examine our assertions
 
     // Then I should have 80 shares of MSFT stock
-    assertEquals(new Position("MSFT", 80.0), portfolio.getPosition("MSFT").orElse(null));
+    assertEquals(new Position("MSFT", 80.0),
+            portfolio.getPosition("MSFT").orElse(null));
     
     //   And I should have 150 shares of APPL stock
-    assertEquals(new Position("APPL", 150.0), portfolio.getPosition("APPL").orElse(null));
-<!-- .element style="font-size: 0.41em;" -->
+    assertEquals(new Position("APPL", 150.0),
+            portfolio.getPosition("APPL").orElse(null));
 
 These assertions focus on the implementation rather than the observable consequences of the behavior we are testing
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -293,6 +297,26 @@ Hamcrest is not a test framework, but Matchers are very useful in tests
 
 ---
 
+Mockito also has Matchers
+
+
+Don't confuse them
+
+
+Mockito Matchers are used for parameters in a stubbed method call
+
+    when(environmentsDao.loadEnvironment(any(String.class)))
+        .thenReturn(environment);
+
+
+But you can use the *argThat* method in Mockito to pass a Hamcrest Matcher when you really need to
+
+    when(environmentsDao.loadEnvironment(
+            argThat(containsString("fake-environment"))))
+        .thenReturn(environment);
+
+---
+
 # Why should I use Matchers?
 
 
@@ -311,7 +335,8 @@ Typical Assertion
     assertEquals(new Position("MSFT", 80.0),
         portfolio.getPosition("MSFT").orElse(null));
 
-Assertion Using Matcher  <!-- .element: class="fragment" data-fragment-index="1" -->
+Assertion Using Matcher
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
     assertThat(portfolio,
         hasPosition(new Position("MSFT", 80.0)));
@@ -331,26 +356,26 @@ Note:
         java.lang.AssertionError
             at org.junit.Assert.fail(Assert.java:86)
             at ...
-<!-- .element style="font-size: 0.41em;" -->
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
 
 
 ### Failure Messages
-    assertEquals(new Position("MSFT", 70.0), portfolio.getPosition("MSFT").orElse(null));
+    assertEquals(new Position("MSFT", 70.0),
+            portfolio.getPosition("MSFT").orElse(null));
     
         java.lang.AssertionError: 
             Expected :Position{symbol='MSFT', units=70.0}
             Actual   :Position{symbol='MSFT', units=80.0}
-<!-- .element style="font-size: 0.41em;" -->
 
 
 ### Failure Messages
-    assertThat(portfolio, hasPosition(new Position("MSFT", 70.0)));
+    assertThat(portfolio, hasPosition(new Position("MSFT", 80.0)));
     
         java.lang.AssertionError: 
         Expected: Portfolio should contain a Position{symbol='MSFT', units=80.0}
              but: Portfolio contains Position{symbol='MSFT', units=70.0}
         Position{symbol='APPL', units=150.0}
-<!-- .element style="font-size: 0.41em;" -->
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
 
 
 ### Type Safety
@@ -382,7 +407,10 @@ Note:
                 .withTradeClock(mockClock)
                 .withMarketDao(mockMarketDao)
                 .build();
+<!-- .element style="font-size: 0.47em; width: 100%;" -->
 
+
+## Improved Test v4
         // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
 
@@ -394,7 +422,7 @@ Note:
         //   And a sell order for 20 shares of MSFT stock should have been executed
         verify(mockMarketDao).execute(sellOrder);
     }
-<!-- .element style="font-size: 0.38em;" -->
+<!-- .element style="font-size: 0.47em; width: 100%;" -->
 
 ---
 
@@ -562,23 +590,23 @@ Plus there are lots of third party Matchers available too!
 
 ---
 
-Mockito also has Matchers
+# Review
+* The goal of testing
+* A brief discussion on Mocks
+* Given, When, Then testing
+* Improving a typical test
+* What is a Matcher?
+* Implementing the Matcher interface
+* Existing Matchers
 
 
-Don't confuse them
+Matchers will not solve all of your testing problems
 
 
-Mockito Matchers are used for parameters in a stubbed method call
-
-    when(environmentsDao.loadEnvironment(any(String.class)))
-        .thenReturn(environment);
+But they will help you distance your testing from the implementation
 
 
-But you can use the *argThat* method in Mockito to pass a Hamcrest Matcher when you really need to
-
-    when(environmentsDao.loadEnvironment(
-            argThat(containsString("fake-environment"))))
-        .thenReturn(environment);
+If your test is difficult to write, you probably need to address a design problem
 
 ---
 
@@ -586,6 +614,6 @@ But you can use the *argThat* method in Mockito to pass a Hamcrest Matcher when 
 
 The slides and all of the code are available at
 
-https://github.com/quincy/matchers-presentation
+[https://github.com/quincy/matchers-presentation](https://github.com/quincy/matchers-presentation)
 
 ![matchers=hamcrest](res/anagram.gif)
