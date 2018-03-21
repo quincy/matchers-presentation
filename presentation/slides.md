@@ -3,11 +3,12 @@ title: Beyond JUnit--Testing With Hamcrest Matchers
 theme: league
 verticalSeparator: "^\n\n"
 ---
-## Beyond JUnit
-### Testing With Hamcrest Matchers
-Quincy Bowers
+# Beyond JUnit
+## Testing With Hamcrest Matchers
+### Quincy Bowers
 
-Software Developer Team Lead
+#### Software Developer Team Lead
+#### Clearwater Analytics
 
 ---
 
@@ -17,8 +18,8 @@ Software Developer Team Lead
 ---
 
 # Agenda
-* The goal of testing
-* A brief discussion on Mocks
+* The goals of testing
+* A brief discussion on Test Doubles
 * Given, When, Then testing
 * Improving a typical test
 * What is a Matcher?
@@ -55,30 +56,84 @@ Documents how the code is meant to be used
 
 ---
 
-# Mock Objects
-You've probably used Mockito.
+# Test Doubles
+## Stubs, Mocks, and Fakes
 
-Here are some rules to avoid some common ways I've seen it misused.
+
+## Stubs
+
+A stub has no logic
+
+It simply returns what it is told to
+
+
+## Stub example
+    Authenticator authenticator = new Authenticator(stubAuthenticationService);
+    
+    when(stubAuthenticationService.isAuthenticated(userId)).thenReturn(false);
+    assertThat(authenticator.userHasAccess(userId), is(false));
+    
+    when(stubAuthenticationService.isAuthenticated(userId)).thenReturn(true);
+    assertThat(authenticator.userHasAccess(userId), is(true));
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
+
+
+# Mocks
+A mock is an object that keeps track of how it has been interacted with
+
+They help you to verify that the interactions between objects are happening as expected
+
+
+## Mock example
+    Authenticator authenticator = new Authenticator(mockAuthenticationService);
+    authenticator.userHasAccess(userId);
+    
+    verify(mockAuthenticationService).isAuthenticated(userId);
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
+
+
+## Fakes
+A fake is a real object that implements the same API as another object
+
+If it would be awkward to use the real implementation in your test, consider writing a fake
+
+
+## Fake example
+    AuthenticationService fakeAuthenticationService
+            = new FakeAuthenticationService();
+    Authenticator authenticator = new Authenticator(fakeAuthenticationService);
+    
+    assertThat(authenticator.userHasAccess(userId), is(false));
+    
+    fakeAuthenticationService.addAuthenticatedUser(userId);
+    assertThat(authenticator.userHasAccess(userId), is(true));
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
+
+
+## Mocking Frameworks
+You've probably used Mockito, or some other mocking framework
+
+Here are some rules to avoid misusing them
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 
 ## Rules To Mock By
 Mock behavior, not data
 
-Don't mock out the getters on a POJO.  Just make an instance of it.
+Don't mock out the getters on a POJO, just make an instance
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-Builders can help.
+Builders can help
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 
 ## Rules To Mock By
 Mock collaborators (dependencies)
 
-Don't mock the object under test.
+Don't mock the object under test
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-You should only be interested in testing one unit at a time.
+You should only be interested in testing one unit at a time
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 Note: Collaborators are the objects that your object under test interacts with in order to do its job
@@ -89,21 +144,28 @@ They are the things you should be injecting into your object
 ![Collaborators](res/class-diagram.png)
 <!-- .element style="width: 150%" -->
 
-(Psst!  This is not Clearwater's Portfolio class)
-<!-- .element style="font-size: 0.5em" -->
-
 
 ## Rules To Mock By
 Never mock something you don't own
 
-This leads to brittle tests.
+This leads to brittle tests
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-The interface can change without warning when you update your dependencies.
+The interface can change without warning when you update your dependencies
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
-Put your own interface in front of those objects and mock that instead.
+Put your own interface in front of those objects and mock that instead
 <!-- .element: class="fragment" data-fragment-index="3" -->
+
+
+## Rules To Mock By
+Only verify state changing methods
+
+Performing verification on every method call leads to brittle tests
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+Only verify the methods which change the state of the system you are testing
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ---
 
@@ -121,6 +183,17 @@ Then a particular set of observable consequences should occur
 Note: Specification by Example
 
 
+## Why Given, When, Then?
+Focuses on behavior
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+Leads to more robust tests
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+Transforms tests into documentation
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+
 ## Test Specification
     Feature: Portfolio trades stocks
       Scenario: Portfolio requests a sell before close of trading
@@ -135,6 +208,10 @@ Note: Specification by Example
         And I should have 150 shares of APPL stock
         And a sell order for 20 shares of MSFT stock should have
           been executed
+
+---
+
+# Example Tests
 
 ---
 
@@ -297,26 +374,6 @@ Hamcrest is not a test framework, but Matchers are very useful in tests
 
 ---
 
-Mockito also has Matchers
-
-
-Don't confuse them
-
-
-Mockito Matchers are used for parameters in a stubbed method call
-
-    when(environmentsDao.loadEnvironment(any(String.class)))
-        .thenReturn(environment);
-
-
-But you can use the *argThat* method in Mockito to pass a Hamcrest Matcher when you really need to
-
-    when(environmentsDao.loadEnvironment(
-            argThat(containsString("fake-environment"))))
-        .thenReturn(environment);
-
----
-
 # Why should I use Matchers?
 
 
@@ -345,13 +402,14 @@ Assertion Using Matcher
 Note:
 * More legible, the second assertion reads almost like your QA Analyst is talking you through it
 * Describes the observable effect, instead of the underlying structure
-* Provides documentation on what code _should_ do, instead of what it does
+* Provides documentation on what code _should_ do, instead of how it does it
 * Better failure messages
 * Type safety
 
 
 ### Failure Messages
     assertTrue(portfolio.getPositions().contains(new Position("MSFT", 70.0)));
+    assertFalse(portfolio.getPositions().contains(new Position("MSFT", 10.0)));
     
         java.lang.AssertionError
             at org.junit.Assert.fail(Assert.java:86)
@@ -383,6 +441,27 @@ Note:
 
     assertThat(123, is("abc")); //does not compile
 
+---
+
+Mockito also has Matchers
+
+
+Don't confuse them
+
+
+Mockito Matchers are used for parameters in a stubbed method call
+
+    when(environmentsDao.loadEnvironment(any(String.class)))
+        .thenReturn(environment);
+
+
+But you can use the *argThat* method in Mockito to pass a Hamcrest Matcher when you really need to
+
+    when(environmentsDao.loadEnvironment(
+            argThat(containsString("fake-environment"))))
+        .thenReturn(environment);
+
+---
 
 ## Improved Test v4
     @Test
@@ -407,10 +486,7 @@ Note:
                 .withTradeClock(mockClock)
                 .withMarketDao(mockMarketDao)
                 .build();
-<!-- .element style="font-size: 0.47em; width: 100%;" -->
-
-
-## Improved Test v4
+        
         // When I ask to sell 20 shares of MSFT stock
         portfolio.trade(sellOrder);
 
@@ -423,6 +499,9 @@ Note:
         verify(mockMarketDao).execute(sellOrder);
     }
 <!-- .element style="font-size: 0.47em; width: 100%;" -->
+
+Now this is a great test!
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -459,6 +538,11 @@ You usually want to extend TypeSafeMatcher, however
             T item,
             Description mismatchDescription) {
     }
+    
+    public interface SelfDescribing {
+        /** describe what is expected */
+        void describeTo(Description description);
+    }
 
 
 ## Portfolio Matcher
@@ -483,25 +567,12 @@ Using the static import
         hasPosition(new Position("MSFT", 80.0)));
 
 
-## matches Safely
-    @Override
-    protected boolean matchesSafely(Portfolio portfolio) {
-        Optional<Position> maybePosition
-            = portfolio.getPosition(expectedPosition.getSymbol());
-            
-            return maybePosition.map(gotPosition 
-                -> gotPosition.equals(expectedPosition))
-                    .orElse(false);
-        }
-<!-- .element style="font-size: 0.52em;" -->
-
-
 ## describe To
     @Override
     public void describeTo(Description description) {
         // describe what is expected
-        description.appendText("Portfolio should contain a "
-            + expectedPosition);
+        description.appendText("Portfolio should contain a ")
+                .appendValue(expectedPosition);
     }
 
 
@@ -520,15 +591,33 @@ Using the static import
     }
 
 
+## matches Safely
+    @Override
+    protected boolean matchesSafely(Portfolio portfolio) {
+        Optional<Position> maybePosition
+            = portfolio.getPosition(expectedPosition.getSymbol());
+            
+            return maybePosition.map(gotPosition 
+                -> gotPosition.equals(expectedPosition))
+                    .orElse(false);
+        }
+<!-- .element style="font-size: 0.52em;" -->
+
+
 That's all there is to it
+
+
+Hold your horses...
+
+All you did was move the implementation specific code into the matcher!
 
 ---
 
+## Built-in Matchers
 There are lots of great Matchers that ship with Hamcrest
 
 
 Object Matchers
-
 * equalTo 
 * hasToString
 * instanceOf, isCompatibleType
@@ -537,7 +626,6 @@ Object Matchers
 
 
 Bean Matchers
-
 * hasProperty
 
 
@@ -546,6 +634,8 @@ Collection Matchers
 * hasEntry, hasKey, hasValue
 * hasItem, hasItems
 * hasItemInArray
+* contains
+* containsInAnyOrder
 
 
 Number Matchers
@@ -560,6 +650,7 @@ String Matchers
 * equalToIgnoringCase
 * equalToIgnoringWhiteSpace
 * containsString, endsWith, startsWith
+* matchesPattern
 
 
 Logical Matchers
@@ -568,12 +659,14 @@ Logical Matchers
 * not
 
 
-Plus there are lots of third party Matchers available too!
+This is only the beginning of what Hamcrest has to offer
+
+Plus, there are lots of third party Matchers available too!
 
 
-# XmlAssertion
+## XmlAssertion
     @Test
-    public void createBranchBuildJobForJenkins2UsesCorrectCredentialsID() {
+    public void createBranchBuildJobUsesCorrectCredentialsID() {
         // test setup...
 
         String gotXML = client.createBuildJobXML(params);
@@ -588,11 +681,30 @@ Plus there are lots of third party Matchers available too!
     }
 <!-- .element style="font-size: 0.47em;" -->
 
+https://github.com/marcingrzejszczak/xmlassert
+
+
+## hamcrest-json
+    assertThat("{\"age\":43, \"friend_ids\":[16, 52, 23]}",
+            sameJSONAs("{\"friend_ids\":[52, 23, 16]}")
+                .allowingExtraUnexpectedFields()
+                .allowingAnyArrayOrdering());
+
+https://github.com/hertzsprung/hamcrest-json
+
+
+## Webdriver Matchers
+    assertThat(title, className("big-title");
+    assertThat(button, value("Start Search"));
+    assertThat(button, value(containsString("Search")));
+
+https://github.com/yandex-qatools/matchers-java/tree/master/webdriver-matchers
+
 ---
 
 # Review
-* The goal of testing
-* A brief discussion on Mocks
+* The goals of testing
+* A brief discussion on Test Doubles
 * Given, When, Then testing
 * Improving a typical test
 * What is a Matcher?

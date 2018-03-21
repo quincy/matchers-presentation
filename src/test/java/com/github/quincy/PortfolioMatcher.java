@@ -22,7 +22,7 @@ public class PortfolioMatcher {
             @Override
             public void describeTo(Description description) {
                 // describe what is expected
-                description.appendText("Portfolio should contain a " + expectedPosition);
+                description.appendText("Portfolio should contain a ").appendValue(expectedPosition);
             }
 
             @Override
