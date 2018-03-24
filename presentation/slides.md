@@ -211,9 +211,73 @@ Transforms tests into documentation
 
 ---
 
-# Example Tests
+# The Code
+
+
+# Portfolio
+    public class Portfolio {
+        private final Map<String, Position> positions;
+        private final TradeClock clock;
+        private final MarketDao marketDao;
+
+        public Portfolio(Map<String, Position> positions, TradeClock clock, MarketDao marketDao) {
+            this.positions = positions;
+            this.clock = clock;
+            this.marketDao = marketDao;
+        }
+
+        public Optional<Position> getPosition(String symbol) {
+            return Optional.ofNullable(positions.get(symbol));
+        }
+
+        public Set<Position> getPositions() {
+            return new HashSet<>(positions.values());
+        }
+
+        public Transaction trade(Trade order) throws MarketClosedException {
+            if (clock.isMarketOpen()) {
+                Transaction transaction = marketDao.execute(order);
+                applyTransaction(transaction);
+                return transaction;
+            }
+
+            throw new MarketClosedException();
+        }
+
+        private void applyTransaction(Transaction transaction) {
+            positions.compute(transaction.getSymbol(),
+                    (symbol, oldPosition)
+                            -> new Position(symbol, oldPosition.getUnits()
+                                    + transaction.getUnitsAdjustment()));
+        }
+    }
+<!-- .element style="font-size: 0.43em; width: 100%;" -->
+
+
+# TradeClock
+Determines if the market is open or not
+
+    @FunctionalInterface
+    public interface TradeClock {
+        boolean isMarketOpen();
+    }
+
+
+# MarketDao
+Executes trades on the stock market
+
+    public class MarketDao {
+        public Transaction execute(Trade trade) {
+            // Pretend this actually executed a trade on the stock market
+            return new Transaction(trade);
+        }
+    }
+<!-- .element style="font-size: 0.5em; width: 100%;" -->
 
 ---
+
+# The Test
+
 
 ## Typical Test v1
     @Test
