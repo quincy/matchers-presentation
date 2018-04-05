@@ -1,4 +1,4 @@
-This is the presentation I gave at Clearwater Analytics for DevCon 2017.
+This is the presentation I gave at [Clearwater Analytics for DevCon 2017](https://www.youtube.com/watch?v=VMZIajN57ws).
 
 # Viewing The Presentation
 This presentation is written in Markdown format and is intended to be presented using the [reveal-md](https://github.com/webpro/reveal-md) tool.
